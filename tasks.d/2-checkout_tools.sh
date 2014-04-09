@@ -3,5 +3,12 @@
 set -e
 HGTOOL=hgtool.py
 
-$HGTOOL /home/catlee/mozilla/tools.hg /tmp/tools
-$HGTOOL -b production /home/catlee/mozilla/mozharness /tmp/mozharness
+TOOLS_REPO=$($RUNNER_CONFIG_CMD -g hg.tools_repo)
+TOOLS_BRANCH=$($RUNNER_CONFIG_CMD -g hg.tools_branch)
+TOOLS_PATH=$($RUNNER_CONFIG_CMD -g hg.tools_path)
+$HGTOOL $TOOLS_REPO -b $TOOLS_BRANCH $TOOLS_PATH
+
+MOZHARNESS_REPO=$($RUNNER_CONFIG_CMD -g hg.mozharness_repo)
+MOZHARNESS_BRANCH=$($RUNNER_CONFIG_CMD -g hg.mozharness_branch)
+MOZHARNESS_PATH=$($RUNNER_CONFIG_CMD -g hg.mozharness_path)
+$HGTOOL $MOZHARNESS_REPO -b $MOZHARNESS_BRANCH $MOZHARNESS_PATH

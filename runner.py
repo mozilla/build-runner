@@ -4,13 +4,15 @@ import os
 import time
 import subprocess
 import re
+import sys
+from ConfigParser import RawConfigParser
 
 import logging
 log = logging.getLogger(__name__)
 
 
-def run_task(t):
-    proc = subprocess.Popen(t, stdin=open(os.devnull, 'r'))
+def run_task(t, env):
+    proc = subprocess.Popen(t, stdin=open(os.devnull, 'r'), env=env)
     rv = proc.wait()
     if rv == 0:
         return "OK"
@@ -20,10 +22,49 @@ def run_task(t):
         return "RETRY"
 
 
-class config:
+class Config(object):
     sleep_time = 1
     max_tries = 5
     halt_task = "halt.sh"
+    filename = None
+    options = None
+
+    def load_config(self, filename):
+        self.filename = filename
+        self.options = RawConfigParser()
+        # The default optionxform converts option names to lower case. We want
+        # to preserve case, so change the transform function to just return the
+        # str value
+        self.options.optionxform = str
+        if not self.options.read([filename]):
+            log.warn("Couldn't load %s", filename)
+            self.options = None
+            return
+
+        if self.options.has_option('runner', 'sleep_time'):
+            self.sleep_time = self.options.getint('runner', 'sleep_time')
+        if self.options.has_option('runner', 'max_tries'):
+            self.max_tries = self.options.getint('runner', 'sleep_time')
+        if self.options.has_option('runner', 'halt_task'):
+            self.halt_task = self.options.get('runner', 'halt_task')
+
+    def get(self, section, option):
+        if self.options and self.options.has_option(section, option):
+            return self.options.get(section, option)
+        return None
+
+    def get_env(self):
+        retval = {}
+        if self.options and self.options.has_section('env'):
+            for option, value in self.options.items('env'):
+                retval[str(option)] = str(value)
+        if self.filename:
+            retval['RUNNER_CONFIG_CMD'] = '{python} {runner} -c {configfile}'.format(
+                python=sys.executable,
+                runner=os.path.abspath(sys.argv[0]),
+                configfile=os.path.abspath(self.filename),
+            )
+        return retval
 
 
 def maybe_int(x):
@@ -41,7 +82,7 @@ def naturalsort_key(x):
     return [maybe_int(y) for y in re.split("(\d+)", x)]
 
 
-def process_taskdir(dirname):
+def process_taskdir(config, dirname):
     # List the files in the directory, and sort them
     tasks = sorted(os.listdir(dirname), key=naturalsort_key)
     # Filter out files with leading .
@@ -52,10 +93,15 @@ def process_taskdir(dirname):
 
     log.debug("tasks: %s", tasks)
 
+    env = os.environ.copy()
+    new_env = config.get_env()
+    log.debug("Updating env with %s", new_env)
+    env.update(new_env)
+
     for try_num in range(1, config.max_tries + 1):
         for t in tasks:
             log.debug("%s: starting", t)
-            r = run_task(os.path.join(dirname, t))
+            r = run_task(os.path.join(dirname, t), env)
             log.debug("%s: %s", t, r)
             if r == "OK":
                 continue
@@ -72,7 +118,7 @@ def process_taskdir(dirname):
             elif r == "HALT":
                 # stop/halt/reboot?
                 log.info("halting")
-                run_task(os.path.join(dirname, config.halt_task))
+                run_task(os.path.join(dirname, config.halt_task), env)
                 return False
         else:
             log.debug("all tasks completed!")
@@ -87,9 +133,10 @@ def make_argument_parser():
     )
     parser.add_argument("-q", "--quiet", dest="loglevel", action="store_const", const=logging.WARN, help="quiet")
     parser.add_argument("-v", "--verbose", dest="loglevel", action="store_const", const=logging.DEBUG, help="verbose")
-    parser.add_argument("-c", "--config", dest="config")
+    parser.add_argument("-c", "--config", dest="config_file")
+    parser.add_argument("-g", "--get", dest="get", help="get configuration value")
     parser.add_argument("-n", "--times", dest="times", type=int, help="run this many times (default is forever)")
-    parser.add_argument("taskdir", help="task directory")
+    parser.add_argument("taskdir", help="task directory", nargs="?")
 
     return parser
 
@@ -99,7 +146,19 @@ def main():
     args = parser.parse_args()
     logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=args.loglevel)
 
-    # TODO: Load the config
+    config = Config()
+    if args.config_file:
+        config.load_config(args.config_file)
+
+    if args.get:
+        log.debug("getting %s", args.get)
+        section, option = args.get.split(".", 1)
+        v = config.get(section, option)
+        if v is not None:
+            print v
+        exit(0)
+    elif not args.taskdir:
+        parser.error("taskdir required")
 
     if not os.path.exists(args.taskdir):
         log.error("%s doesn't exist", args.taskdir)
@@ -111,7 +170,7 @@ def main():
         log.info("iteration %i", t)
         if args.times and t > args.times:
             break
-        if not process_taskdir(args.taskdir):
+        if not process_taskdir(config, args.taskdir):
             exit(1)
 
 
