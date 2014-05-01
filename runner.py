@@ -133,7 +133,7 @@ def naturally_sorted(l):
 
 def list_directory(dirname):
     # List the files in the directory, and sort them
-    files = sorted(os.listdir(dirname), key=naturalsort_key)
+    files = naturally_sorted(os.listdir(dirname))
     # Filter out files with leading .
     return [f for f in files if f[0] != '.']
 
