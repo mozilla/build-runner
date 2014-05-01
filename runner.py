@@ -54,6 +54,12 @@ class Config(object):
             log.warn("Couldn't load %s", filename)
             self.options = None
             return
+        if self.options.has_option('runner', 'include_dir'):
+            # reload the object including files in config.d
+            config_dir = self.options.get('runner', 'include_dir')
+            if not self.options.read([filename] + list_directory(config_dir)):
+                log.warn("Couldn't load %s", config_dir)
+                return
 
         if self.options.has_option('runner', 'sleep_time'):
             self.sleep_time = self.options.getint('runner', 'sleep_time')
@@ -125,11 +131,15 @@ def naturally_sorted(l):
     return sorted(l, key=naturalsort_key)
 
 
-def process_taskdir(config, dirname):
+def list_directory(dirname):
     # List the files in the directory, and sort them
-    tasks = sorted(os.listdir(dirname), key=naturalsort_key)
+    files = sorted(os.listdir(dirname), key=naturalsort_key)
     # Filter out files with leading .
-    tasks = [t for t in tasks if t[0] != '.']
+    return [f for f in files if f[0] != '.']
+
+
+def process_taskdir(config, dirname):
+    tasks = list_directory(dirname)
     # Filter out the halting task
     if config.halt_task in tasks:
         tasks.remove(config.halt_task)
