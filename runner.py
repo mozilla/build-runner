@@ -84,7 +84,18 @@ class Config(object):
 
 
 def maybe_int(x):
-    """Returns int(x), or x if x can't be converted to an int"""
+    """Returns int(x), or x if x can't be converted to an int
+
+    >>> maybe_int(1)
+    1
+
+    >>> maybe_int('1')
+    1
+
+    >>> maybe_int('notanint')
+    'notanint'
+    """
+
     try:
         return int(x)
     except ValueError:
@@ -94,8 +105,24 @@ def maybe_int(x):
 def naturalsort_key(x):
     """
     Splits x into numbers/not-numbers so it can be sorted
+
+    >>> naturalsort_key('1-foo.bar')
+    (1, '-foo.bar')
+
+    >>> naturalsort_key('11-foo.bar')
+    (11, '-foo.bar')
     """
-    return [maybe_int(y) for y in re.split("(\d+)", x)]
+    return tuple(maybe_int(y) for y in filter(None, re.split("(\d+)", x)))
+
+
+def naturally_sorted(l):
+    """
+    Returns list l sorted naturally
+
+    >>> naturally_sorted(reversed(['0-first', '1-second', '2-third', '11-fourth']))
+    ['0-first', '1-second', '2-third', '11-fourth']
+    """
+    return sorted(l, key=naturalsort_key)
 
 
 def process_taskdir(config, dirname):

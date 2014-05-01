@@ -47,5 +47,6 @@ will return the "remote" configuration variable from the "hg" section
 - support config.d directory
 - implement tasks
 - exponential backoff for sleep time
-
 - packaging
+- tests
+- setup.py
