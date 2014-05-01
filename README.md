@@ -10,10 +10,11 @@ Configuration is done with INI style configuration files.
 ## [runner] section
 Keys:
 
-- sleep\_time: how long to wait between retries
-- max\_tries: how many times to retry before giving up
-- halt\_task: which task to run to "halt" the process. This could perhaps shut
+- `sleep_time`: how long to wait between retries
+- `max_tries`: how many times to retry before giving up
+- `halt_task`: which task to run to "halt" the process. This could perhaps shut
   the machine down or terminate the EC2 instance
+- `max_time`: maximum amount of time a task can run
 
 ## [env] section
 Keys and values in this section are passed into tasks as environment variables
@@ -41,11 +42,10 @@ environment that allows tasks to easily access configuration. e.g.
 
 will return the "remote" configuration variable from the "hg" section
 
+
 # TODO
-- fix up README
 - support config.d directory
 - implement tasks
-- add max time
 - exponential backoff for sleep time
 
 - packaging

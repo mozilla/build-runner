@@ -11,8 +11,21 @@ import logging
 log = logging.getLogger(__name__)
 
 
-def run_task(t, env):
+def run_task(t, env, max_time):
+    start = time.time()
     proc = subprocess.Popen(t, stdin=open(os.devnull, 'r'), env=env)
+    while True:
+        if proc.poll() is not None:
+            break
+
+        if time.time() - start > max_time:
+            # Try killing it
+            log.warn("exceeded max_time; killing")
+            proc.terminate()
+            return "RETRY"
+        else:
+            time.sleep(1)
+
     rv = proc.wait()
     if rv == 0:
         return "OK"
@@ -25,6 +38,7 @@ def run_task(t, env):
 class Config(object):
     sleep_time = 1
     max_tries = 5
+    max_time = 600
     halt_task = "halt.sh"
     filename = None
     options = None
@@ -44,7 +58,9 @@ class Config(object):
         if self.options.has_option('runner', 'sleep_time'):
             self.sleep_time = self.options.getint('runner', 'sleep_time')
         if self.options.has_option('runner', 'max_tries'):
-            self.max_tries = self.options.getint('runner', 'sleep_time')
+            self.max_tries = self.options.getint('runner', 'max_tries')
+        if self.options.has_option('runner', 'max_time'):
+            self.max_time = self.options.getint('runner', 'max_time')
         if self.options.has_option('runner', 'halt_task'):
             self.halt_task = self.options.get('runner', 'halt_task')
 
@@ -98,10 +114,12 @@ def process_taskdir(config, dirname):
     log.debug("Updating env with %s", new_env)
     env.update(new_env)
 
+    max_time = config.max_time
+
     for try_num in range(1, config.max_tries + 1):
         for t in tasks:
-            log.debug("%s: starting", t)
-            r = run_task(os.path.join(dirname, t), env)
+            log.debug("%s: starting (max time %is)", t, max_time)
+            r = run_task(os.path.join(dirname, t), env, max_time=max_time)
             log.debug("%s: %s", t, r)
             if r == "OK":
                 continue
@@ -118,7 +136,7 @@ def process_taskdir(config, dirname):
             elif r == "HALT":
                 # stop/halt/reboot?
                 log.info("halting")
-                run_task(os.path.join(dirname, config.halt_task), env)
+                run_task(os.path.join(dirname, config.halt_task), env, max_time=max_time)
                 return False
         else:
             log.debug("all tasks completed!")
@@ -139,6 +157,21 @@ def make_argument_parser():
     parser.add_argument("taskdir", help="task directory", nargs="?")
 
     return parser
+
+
+def runner(config, taskdir, times):
+    """Runs tasks in the taskdir up to `times` number of times
+
+    times can be None to run forever
+    """
+    t = 0
+    while True:
+        t += 1
+        log.info("iteration %i", t)
+        if times and t > times:
+            break
+        if not process_taskdir(config, taskdir):
+            exit(1)
 
 
 def main():
@@ -164,14 +197,7 @@ def main():
         log.error("%s doesn't exist", args.taskdir)
         exit(1)
 
-    t = 0
-    while True:
-        t += 1
-        log.info("iteration %i", t)
-        if args.times and t > args.times:
-            break
-        if not process_taskdir(config, args.taskdir):
-            exit(1)
+    runner(config, args.taskdir, args.times)
 
 
 if __name__ == '__main__':
