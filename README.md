@@ -1,40 +1,51 @@
-# Buildbot Runner
+# Runner
 
-Buildbot runner is a project that manages starting/stopping buildbot
-It has a configurable set of plugins that can run as "pre-flight" or "post-flight" tasks
+Runner is a project that manages starting tasks in a defined order. If tasks
+fail, the chain can be retried, or halted.
 
 # Configuration
-- Need to be able to have common configuration between tasks
-  use environment vars?
-  json files?
-  key/value pairs?
-  python module?
-  cmdline api?
 
-# pre-flight tasks
-Pre-flight tasks run before buildbot is started
-If a pre-flight task fails, we can:
-* sleep/retry
-* halt
-* reboot
+Configuration is done with INI style configuration files.
 
-# post-flight tasks
-post-flight tasks run after buildbot finishes
-these tasks can do cleanup, and then decide to:
-* re-run the loop
-* halt
-* reboot
+## [runner] section
+Keys:
 
-# tasks
-Tasks are loaded from a task dir, defaults to $PWD/tasks.d
+- sleep\_time: how long to wait between retries
+- max\_tries: how many times to retry before giving up
+- halt\_task: which task to run to "halt" the process. This could perhaps shut
+  the machine down or terminate the EC2 instance
+
+## [env] section
+Keys and values in this section are passed into tasks as environment variables
+
+## other sections
+Configuration for other tasks or purposes can go into their own sections.
+
+
+# Tasks
+Tasks are loaded from a task dir.
 Tasks are run as separate processes.
 
-# sample tasks
-- check ami
-- check slavealloc
-- update (tools, hg-shared, etc.)
-- purge builds
-- clobber
-- kill procs
-- run buildbot
-- maybe shutdown or reboot
+The return code of a task determines what happens next.
+
+Return code 0 means everything went well, and to continue on to the next task.
+
+Return code 2 means to run the "halt" task, and then stop running tasks and exit runner
+
+Other return codes will cause runner to retry tasks from the beginning.
+
+A special environment variable, `"RUNNER_CONFIG_CMD"` is always set in the
+environment that allows tasks to easily access configuration. e.g.
+
+    $RUNNER_CONFIG_CMD -g hg.remote
+
+will return the "remote" configuration variable from the "hg" section
+
+# TODO
+- fix up README
+- support config.d directory
+- implement tasks
+- add max time
+- exponential backoff for sleep time
+
+- packaging
