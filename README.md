@@ -42,6 +42,10 @@ environment that allows tasks to easily access configuration. e.g.
 
 will return the "remote" configuration variable from the "hg" section
 
+# Tests
+Tests are run via nose
+Run `python setup.py nosetests`, or nose manually
+
 
 # TODO
 - support config.d directory
