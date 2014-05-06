@@ -39,7 +39,7 @@ def get_aws_userdata():
     """Gets AWS user-data"""
     user_data = get_page(AWS_USERDATA_URL)
     try:
-        return yaml.load(user_data)
+        return yaml.safe_load(user_data)
     except Exception:
         return None
 
@@ -74,14 +74,14 @@ def main():
     moz_instance_type = user_data["moz_instance_type"]
     is_spot = user_data.get("is_spot")
     if not is_spot:
-        # TODO: shutdown doesn't work for on-deman instances
+        # TODO: shutdown doesn't work for on-demand instances
         log.error("Non spot instances are not supported yet")
         exit(1)
     amis = get_json(URL)
     compatible_amis = get_compatible_amis(amis, az, moz_instance_type)
     last_ami = compatible_amis[0]
     if my_ami != last_ami["id"]:
-        now = time.mktime(time.gmtime())
+        now = time.time()
         created = int(last_ami["tags"]["moz-created"])
         if now - created > AMI_TTL:
             log.warn("Time to recycle!")
