@@ -72,7 +72,7 @@ def main():
         log.error("cannot operate without userdata")
         exit(1)
     moz_instance_type = user_data["moz_instance_type"]
-    is_spot = user_data["is_spot"] == "1"
+    is_spot = user_data.get("is_spot")
     if not is_spot:
         # TODO: shutdown doesn't work for on-deman instances
         log.error("Non spot instances are not supported yet")
