@@ -57,7 +57,8 @@ class Config(object):
         if self.options.has_option('runner', 'include_dir'):
             # reload the object including files in config.d
             config_dir = self.options.get('runner', 'include_dir')
-            if not self.options.read([filename] + list_directory(config_dir)):
+            configs = [os.path.join(config_dir, c) for c in list_directory(config_dir)]
+            if not self.options.read([filename] + configs):
                 log.warn("Couldn't load %s", config_dir)
                 return
 
