@@ -205,9 +205,9 @@ def runner(config, taskdir, times):
     t = 0
     while True:
         t += 1
-        log.info("iteration %i", t)
         if times and t > times:
             break
+        log.info("iteration %i", t)
         if not process_taskdir(config, taskdir):
             exit(1)
 
