@@ -3,4 +3,4 @@
 set -e
 TOOLS=$($RUNNER_CONFIG_CMD -g hg.tools_path)
 SLAVEDIR=$($RUNNER_CONFIG_CMD -g buildbot.slave_dir)
-python $TOOLS/buildfarm/maintenance/purge_builds.py --dry-run $SLAVEDIR
+python $TOOLS/buildfarm/maintenance/purge_builds.py --dry-run -s 10 $SLAVEDIR

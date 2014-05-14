@@ -48,9 +48,9 @@ Run `python setup.py nosetests`, or nose manually
 
 
 # TODO
-- support config.d directory
 - implement tasks
 - exponential backoff for sleep time
-- packaging
-- tests
-- setup.py
+- packaging / deployment
+- ccache cleanup (tmp files)
+- repo cleanup (old \*.git files)
+- check slavealloc (changed master?)
