@@ -60,8 +60,8 @@ def get_compatible_amis(amis, az, moz_instance_type):
     return sorted([a for a in amis.values() if
                    a["tags"].get("moz-type") == moz_instance_type and
                    a["region"] in az],  # us-west-2 in us-west-2d
-                  key=lambda e: e.get("tags", {}).get("moz-created"),
-                  reverse=True)
+                  key=lambda e: (e.get("tags", {}).get("moz-created"),
+                                 e.get("id")), reverse=True)
 
 
 def main():
