@@ -50,7 +50,6 @@ Run `python setup.py nosetests`, or nose manually
 # TODO
 - implement tasks
 - exponential backoff for sleep time
-- packaging / deployment
 - ccache cleanup (tmp files)
 - repo cleanup (old \*.git files)
 - check slavealloc (changed master?)
