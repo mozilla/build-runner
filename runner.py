@@ -149,7 +149,7 @@ def list_directory(dirname):
 
 
 def get_task_name(taskfile):
-    return taskfile.split('-')[1].split('.')[0]
+    return taskfile.split('-', 1)[1].split('.', 1)[0]
 
 
 def process_taskdir(config, dirname):
