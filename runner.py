@@ -94,9 +94,12 @@ class Config(object):
         return retval
 
     def get_task_config(self, taskname):
+        """Returns a dict of the config options for [taskname]
+        or an empty dict otherwise
+        """
         if self.options.has_section(taskname):
             return dict(self.options.items(taskname))
-        return None
+        return {}
 
 
 def maybe_int(x):
@@ -165,41 +168,41 @@ def process_taskdir(config, dirname):
     log.debug("Updating env with %s", new_env)
     env.update(new_env)
 
+    default_config = {
+        "max_time": config.max_time,
+        "max_tries": config.max_tries,
+        "sleep_time": config.sleep_time
+    }
+
     for try_num in range(1, config.max_tries + 1):
         for t in tasks:
-            tasks_config = {
-                "max_time": config.max_time,
-                "max_tries": config.max_tries,
-                "sleep_time": config.sleep_time
-            }
+            task_config = config.get_task_config(get_task_name(t))
+            task_config = {k: int(v) for k, v in task_config.items() if k in default_config}
 
-            task_specific_config = config.get_task_config(get_task_name(t))
+            for k, v in default_config.items():
+                if k not in task_config:
+                    task_config[k] = v
 
-            if task_specific_config is not None:
-                relevant = {k: int(v) for k, v in task_specific_config.items() if k in tasks_config.keys()}
-                if len(relevant.keys()):
-                    tasks_config.update(relevant)
-
-            log.debug("%s: starting (max time %is)", t, tasks_config['max_time'])
-            r = run_task(os.path.join(dirname, t), env, max_time=tasks_config['max_time'])
+            log.debug("%s: starting (max time %is)", t, task_config['max_time'])
+            r = run_task(os.path.join(dirname, t), env, max_time=task_config['max_time'])
             log.debug("%s: %s", t, r)
 
             if r == "OK":
                 continue
             elif r == "RETRY":
                 # No point in sleeping if we're on our last try
-                if try_num == tasks_config['max_tries']:
+                if try_num == task_config['max_tries']:
                     log.warn("maximum attempts reached")
                     # TODO: halt here too?
                     return False
                 # Sleep and try again
-                log.debug("sleeping for %i", tasks_config['sleep_time'])
-                time.sleep(tasks_config['sleep_time'])
+                log.debug("sleeping for %i", task_config['sleep_time'])
+                time.sleep(task_config['sleep_time'])
                 break
             elif r == "HALT":
                 # stop/halt/reboot?
                 log.info("halting")
-                run_task(os.path.join(dirname, config.halt_task), env, max_time=tasks_config['max_time'])
+                run_task(os.path.join(dirname, config.halt_task), env, max_time=task_config['max_time'])
                 return False
         else:
             log.debug("all tasks completed!")
