@@ -243,7 +243,7 @@ def process_taskdir(config, dirname):
     for t in tasks:
         deps = config.get(get_task_name(t), 'depends_on')
         if deps is not None:
-            taskconfigs.append(TaskConfig(t, deps.split(',')))
+            taskconfigs.append(TaskConfig(t, deps.split(',').strip()))
         else:
             taskconfigs.append(TaskConfig(t, []))
 
