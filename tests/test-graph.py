@@ -1,5 +1,4 @@
 import nose
-import sys
 from runner import (
     TaskConfig,
     TaskGraph,
