@@ -104,57 +104,15 @@ class Config(object):
         return {}
 
 
-def maybe_int(x):
-    """Returns int(x), or x if x can't be converted to an int
-
-    >>> maybe_int(1)
-    1
-
-    >>> maybe_int('1')
-    1
-
-    >>> maybe_int('notanint')
-    'notanint'
-    """
-
-    try:
-        return int(x)
-    except ValueError:
-        return x
-
-
-def naturalsort_key(x):
-    """
-    Splits x into numbers/not-numbers so it can be sorted
-
-    >>> naturalsort_key('1-foo.bar')
-    (1, '-foo.bar')
-
-    >>> naturalsort_key('11-foo.bar')
-    (11, '-foo.bar')
-    """
-    return tuple(maybe_int(y) for y in filter(None, re.split("(\d+)", x)))
-
-
-def naturally_sorted(l):
-    """
-    Returns list l sorted naturally
-
-    >>> naturally_sorted(reversed(['0-first', '1-second', '2-third', '11-fourth']))
-    ['0-first', '1-second', '2-third', '11-fourth']
-    """
-    return sorted(l, key=naturalsort_key)
-
-
 def list_directory(dirname):
     # List the files in the directory, and sort them
-    files = naturally_sorted(os.listdir(dirname))
+    files = os.listdir(dirname)
     # Filter out files with leading .
     return [f for f in files if f[0] != '.']
 
 
 def get_task_name(taskfile):
-    return taskfile.split('-', 1)[1].split('.', 1)[0]
+    return taskfile.split('.', 1)[0]
 
 
 class CycleError(Exception):
@@ -202,7 +160,6 @@ class TaskGraph(object):
         while no_inc_edges:
             n = no_inc_edges.pop()
             to_ret.append(n.name)
-            print to_ret
             for m in self._nodes_with_edges_from(graph, n):
                 self._remove_edge(graph, n, m)
                 if not set(self._nodes_with_edges_to(graph, m)) - set([n]):
@@ -275,14 +232,25 @@ class TaskConfig(object):
                                      self.dependencies)
 
 
-
 def process_taskdir(config, dirname):
     tasks = list_directory(dirname)
     # Filter out the halting task
     if config.halt_task in tasks:
         tasks.remove(config.halt_task)
 
-    log.debug("tasks: %s", tasks)
+    # Get a list of a TaskConfig objects mapping task to their dependencies
+    taskconfigs = []
+    for t in tasks:
+        deps = config.get(get_task_name(t), 'depends_on')
+        if deps is not None:
+            taskconfigs.append(TaskConfig(t, deps.split(',')))
+        else:
+            taskconfigs.append(TaskConfig(t, []))
+
+    tg = TaskGraph(taskconfigs)  # construct the dependency graph
+    task_list = tg.sequential_ordering()  # get a topologically sorted order
+
+    log.debug("tasks: %s", task_list)
 
     env = os.environ.copy()
     new_env = config.get_env()
@@ -296,10 +264,12 @@ def process_taskdir(config, dirname):
     }
 
     for try_num in range(1, config.max_tries + 1):
-        for t in tasks:
+        for t in task_list:
+            # Get the portion of a task's config that can override default_config
             task_config = config.get_task_config(get_task_name(t))
             task_config = {k: int(v) for k, v in task_config.items() if k in default_config}
 
+            # do the override
             for k, v in default_config.items():
                 if k not in task_config:
                     task_config[k] = v
