@@ -128,7 +128,8 @@ class TaskGraph(object):
         self._nodes = {}
         for task in taskconfigs:
             self._nodes[task.name] = task
-            self._refresh()
+
+        self._refresh()
 
         missing = self._missing_tasks()
         if missing:
@@ -137,6 +138,7 @@ class TaskGraph(object):
                                               + ", ".join(missing))
 
     def _refresh(self):
+        """Refreshes the pointers between graph nodes"""
         for node in self._nodes.values():
             for sd in node.stated_dependencies:
                 if sd in self._nodes and sd not in node.dependencies:
@@ -145,7 +147,7 @@ class TaskGraph(object):
     def _missing_tasks(self):
         """List of missing tasks (ie. unfulfilled dependencies)"""
         lst = [node._missing_dependencies() for node in self._nodes.values()]
-        return list(set(itertools.chain.from_iterable(lst)))  # flatten
+        return set(itertools.chain.from_iterable(lst))
 
     def sequential_ordering(self):
         """Topological sort, ignores parallelisation possibilities
@@ -163,7 +165,7 @@ class TaskGraph(object):
             for m in self._nodes_with_edges_from(graph, n):
                 self._remove_edge(graph, n, m)
                 if not set(self._nodes_with_edges_to(graph, m)) - set([n]):
-                    no_inc_edges.append(m)
+                    no_inc_edges.add(m)
 
         if self._has_edges(graph):
             # we've got a cycle in our graph!
@@ -172,11 +174,11 @@ class TaskGraph(object):
         to_ret.reverse()  # because we point TO our dependents
         return to_ret
 
-    @staticmethod
-    def _start_nodes(graph):
+    @classmethod
+    def _start_nodes(cls, graph):
         """Returns the nodes in the graph with no dependencies"""
-        return [n for n in graph
-                if not TaskGraph._nodes_with_edges_to(graph, n)]
+        return {n for n in graph
+                if not cls._nodes_with_edges_to(graph, n)}
 
     @staticmethod
     def _has_edges(graph):
@@ -190,11 +192,21 @@ class TaskGraph(object):
 
     @staticmethod
     def _nodes_with_edges_to(graph, n):
-        return [m for m in graph if m is not n and n in m.dependencies]
+        """Returns the list of task nodes which depend on n.
+
+        More generally this means it returns the list of nodes which have
+        directed edges pointed to n.
+        """
+        return {m for m in graph if m is not n and n in m.dependencies}
 
     @staticmethod
     def _nodes_with_edges_from(graph, n):
-        return list(n.dependencies)
+        """Returns the list of task nodes which n depends on
+
+        More generally this means it returns the list of nodes which n points
+        to
+        """
+        return copy.copy(n.dependencies)
 
     @staticmethod
     def _remove_edge(graph, n, m):
@@ -211,7 +223,7 @@ class TaskGraph(object):
 class TaskConfig(object):
     def __init__(self, name, dependencies):
         self.name = name
-        self.stated_dependencies = set(dependencies) - set(self.name)
+        self.stated_dependencies = set(dependencies) - set([name])
         self.dependencies = set()
 
     @classmethod
