@@ -235,8 +235,7 @@ class TaskConfig(object):
         return cls(mapping['name'], mapping['dependencies'])
 
     def _missing_dependencies(self):
-        return list(set(self.stated_dependencies)
-                    - set([d.name for d in self.dependencies]))
+        return self.stated_dependencies - {d.name for d in self.dependencies}
 
     def __str__(self):
         return "({}, {}, {})".format(self.name,
