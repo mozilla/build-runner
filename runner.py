@@ -3,6 +3,8 @@
 import os
 import time
 import subprocess
+import copy
+import itertools
 import re
 import sys
 from ConfigParser import RawConfigParser
@@ -102,57 +104,143 @@ class Config(object):
         return {}
 
 
-def maybe_int(x):
-    """Returns int(x), or x if x can't be converted to an int
-
-    >>> maybe_int(1)
-    1
-
-    >>> maybe_int('1')
-    1
-
-    >>> maybe_int('notanint')
-    'notanint'
-    """
-
-    try:
-        return int(x)
-    except ValueError:
-        return x
-
-
-def naturalsort_key(x):
-    """
-    Splits x into numbers/not-numbers so it can be sorted
-
-    >>> naturalsort_key('1-foo.bar')
-    (1, '-foo.bar')
-
-    >>> naturalsort_key('11-foo.bar')
-    (11, '-foo.bar')
-    """
-    return tuple(maybe_int(y) for y in filter(None, re.split("(\d+)", x)))
-
-
-def naturally_sorted(l):
-    """
-    Returns list l sorted naturally
-
-    >>> naturally_sorted(reversed(['0-first', '1-second', '2-third', '11-fourth']))
-    ['0-first', '1-second', '2-third', '11-fourth']
-    """
-    return sorted(l, key=naturalsort_key)
-
-
 def list_directory(dirname):
     # List the files in the directory, and sort them
-    files = naturally_sorted(os.listdir(dirname))
+    files = os.listdir(dirname)
     # Filter out files with leading .
     return [f for f in files if f[0] != '.']
 
 
 def get_task_name(taskfile):
-    return taskfile.split('-', 1)[1].split('.', 1)[0]
+    return taskfile.split('.', 1)[0]
+
+
+class CycleError(Exception):
+    pass
+
+
+class DependencyDoesNotExistError(Exception):
+    pass
+
+
+class TaskGraph(object):
+    def __init__(self, taskconfigs):
+        self._nodes = {}
+        for task in taskconfigs:
+            self._nodes[task.name] = task
+
+        self._refresh()
+
+        missing = self._missing_tasks()
+        if missing:
+            raise DependencyDoesNotExistError("The following are depended on "
+                                              "but do not exist: "
+                                              + ", ".join(missing))
+
+    def _refresh(self):
+        """Refreshes the pointers between graph nodes"""
+        for node in self._nodes.values():
+            for sd in node.stated_dependencies:
+                if sd in self._nodes and sd not in node.dependencies:
+                    node.dependencies.add(self._nodes[sd])
+
+    def _missing_tasks(self):
+        """List of missing tasks (ie. unfulfilled dependencies)"""
+        lst = [node._missing_dependencies() for node in self._nodes.values()]
+        return set(itertools.chain.from_iterable(lst))
+
+    def sequential_ordering(self):
+        """Topological sort, ignores parallelisation possibilities
+        Algorithm is Kahn (1962),
+        http://en.wikipedia.org/wiki/Topological_sorting#Algorithms
+        """
+
+        to_ret = []
+        graph = copy.deepcopy(self._nodes.values())
+        no_inc_edges = self._start_nodes(graph)
+
+        while no_inc_edges:
+            n = no_inc_edges.pop()
+            to_ret.append(n.name)
+            for m in self._nodes_with_edges_from(graph, n):
+                self._remove_edge(graph, n, m)
+                if not set(self._nodes_with_edges_to(graph, m)) - set([n]):
+                    no_inc_edges.add(m)
+
+        if self._has_edges(graph):
+            # we've got a cycle in our graph!
+            raise CycleError("Graph of task dependencies has cycles")
+
+        to_ret.reverse()  # because we point TO our dependents
+        return to_ret
+
+    @classmethod
+    def _start_nodes(cls, graph):
+        """Returns the nodes in the graph with no dependencies"""
+        return {n for n in graph
+                if not cls._nodes_with_edges_to(graph, n)}
+
+    @staticmethod
+    def _has_edges(graph):
+        """Returns True if there are any edges remaining in the graph,
+        False otherwise"""
+
+        for node in graph:
+            if node.dependencies:
+                return True
+        return False
+
+    @staticmethod
+    def _nodes_with_edges_to(graph, n):
+        """Returns the list of task nodes which depend on n.
+
+        More generally this means it returns the list of nodes which have
+        directed edges pointed to n.
+        """
+        return {m for m in graph if m is not n and n in m.dependencies}
+
+    @staticmethod
+    def _nodes_with_edges_from(graph, n):
+        """Returns the list of task nodes which n depends on
+
+        More generally this means it returns the list of nodes which n points
+        to
+        """
+        return copy.copy(n.dependencies)
+
+    @staticmethod
+    def _remove_edge(graph, n, m):
+        """Remove the edge from n to m"""
+        if m not in n.dependencies:
+            return
+
+        n.dependencies.remove(m)
+
+    def __str__(self):
+        return ", ".join(map(str, self._nodes.values()))
+
+
+class TaskConfig(object):
+    def __init__(self, name, dependencies):
+        self.name = name
+        self.stated_dependencies = set(dependencies) - set([name])
+        self.dependencies = set()
+
+    @classmethod
+    def fromtuple(cls, pair):
+        return cls(pair[0], pair[1])
+
+    @classmethod
+    def fromdict(cls, mapping):
+        return cls(mapping['name'], mapping['dependencies'])
+
+    def _missing_dependencies(self):
+        return self.stated_dependencies - {d.name for d in self.dependencies}
+
+    def __str__(self):
+        return "({}, {}, {})".format(self.name,
+                                     self.stated_dependencies,
+                                     self.dependencies)
 
 
 def process_taskdir(config, dirname):
@@ -161,7 +249,19 @@ def process_taskdir(config, dirname):
     if config.halt_task in tasks:
         tasks.remove(config.halt_task)
 
-    log.debug("tasks: %s", tasks)
+    # Get a list of a TaskConfig objects mapping task to their dependencies
+    taskconfigs = []
+    for t in tasks:
+        deps = config.get(get_task_name(t), 'depends_on')
+        if deps is not None:
+            taskconfigs.append(TaskConfig(t, map(str.strip, deps.split(','))))
+        else:
+            taskconfigs.append(TaskConfig(t, []))
+
+    tg = TaskGraph(taskconfigs)  # construct the dependency graph
+    task_list = tg.sequential_ordering()  # get a topologically sorted order
+
+    log.debug("tasks: %s", task_list)
 
     env = os.environ.copy()
     new_env = config.get_env()
@@ -175,10 +275,12 @@ def process_taskdir(config, dirname):
     }
 
     for try_num in range(1, config.max_tries + 1):
-        for t in tasks:
+        for t in task_list:
+            # Get the portion of a task's config that can override default_config
             task_config = config.get_task_config(get_task_name(t))
             task_config = {k: int(v) for k, v in task_config.items() if k in default_config}
 
+            # do the override
             for k, v in default_config.items():
                 if k not in task_config:
                     task_config[k] = v
