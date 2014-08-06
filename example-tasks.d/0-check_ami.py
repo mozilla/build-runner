@@ -8,13 +8,20 @@ import urlparse
 import yaml
 import os
 import logging
+import random
 
 AWS_METADATA_URL = "http://169.254.169.254/latest/meta-data/"
 AWS_USERDATA_URL = "http://169.254.169.254/latest/user-data"
 URL = "https://s3.amazonaws.com/mozilla-releng-amis/amis.json"
-AMI_TTL = 3600
+AMI_TTL = 3 * 60 * 60  # 3 hours
 
 log = logging.getLogger(__name__)
+
+
+def should_recycle(created, ttl):
+    """Decide if should recycle increasing probability depending on how close
+    to TTL."""
+    return random.random() + (time.time() - created) / float(ttl) > 1
 
 
 def get_page(url):
@@ -81,9 +88,8 @@ def main():
     compatible_amis = get_compatible_amis(amis, az, moz_instance_type)
     last_ami = compatible_amis[0]
     if my_ami != last_ami["id"]:
-        now = time.time()
         created = int(last_ami["tags"]["moz-created"])
-        if now - created > AMI_TTL:
+        if should_recycle(created, AMI_TTL):
             log.warn("Time to recycle!")
             os.system("/sbin/poweroff")
 
