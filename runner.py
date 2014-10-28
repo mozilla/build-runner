@@ -5,7 +5,6 @@ import time
 import subprocess
 import copy
 import itertools
-import re
 import sys
 from ConfigParser import RawConfigParser
 
@@ -112,7 +111,11 @@ def list_directory(dirname):
 
 
 def get_task_name(taskfile):
-    return taskfile.split('.', 1)[0]
+    """
+    >>> get_task_name('3-buildbot.py')
+    'buildbot'
+    """
+    return taskfile.split('-', 1)[1].split('.', 1)[0]
 
 
 class CycleError(Exception):

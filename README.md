@@ -46,6 +46,8 @@ will return the "remote" configuration variable from the "hg" section
 Tests are run via nose
 Run `python setup.py nosetests`, or nose manually
 
+Runner also uses doctests
+Run `python -m doctest -v runner.py`
 
 # TODO
 - implement tasks
