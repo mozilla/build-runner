@@ -5,7 +5,6 @@ import time
 import subprocess
 import copy
 import itertools
-import re
 import sys
 from ConfigParser import RawConfigParser
 
