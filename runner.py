@@ -99,7 +99,7 @@ class Config(object):
         """Returns a dict of the config options for [taskname]
         or an empty dict otherwise
         """
-        if self.options.has_section(taskname):
+        if self.options is not None and self.options.has_section(taskname):
             return dict(self.options.items(taskname))
         return {}
 
