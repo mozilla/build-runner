@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """runner [-v|-q] [-c config] taskdir"""
 import os
-import re
 import time
 import subprocess
 import copy
@@ -120,11 +119,13 @@ def get_task_name(taskfile):
     >>> get_task_name('buildbot')
     'buildbot'
     """
-    task_no_prefix = re.search('(^.*-)?(.*)', taskfile).group(2)
-    task_no_suffix = ''.join(task_no_prefix.split('.')[0:-1])
-    if task_no_suffix == '':
-        return taskfile
-    return task_no_suffix
+    task_no_prefix = ''.join(taskfile.split('-')[1:])
+    task = task_no_prefix if task_no_prefix != '' else taskfile
+
+    task_no_suffix = ''.join(task.split('.')[0:-1])
+    task = task_no_suffix if task_no_suffix != '' else task
+
+    return task
 
 
 class CycleError(Exception):
