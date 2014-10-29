@@ -98,7 +98,7 @@ class Config(object):
         """Returns a dict of the config options for [taskname]
         or an empty dict otherwise
         """
-        if self.options.has_section(taskname):
+        if self.options is not None and self.options.has_section(taskname):
             return dict(self.options.items(taskname))
         return {}
 
@@ -114,8 +114,18 @@ def get_task_name(taskfile):
     """
     >>> get_task_name('3-buildbot.py')
     'buildbot'
+    >>> get_task_name('buildbot.py')
+    'buildbot'
+    >>> get_task_name('buildbot')
+    'buildbot'
     """
-    return taskfile.split('-', 1)[1].split('.', 1)[0]
+    task_no_prefix = ''.join(taskfile.split('-')[1:])
+    taskname = task_no_prefix if task_no_prefix != '' else taskfile
+
+    task_no_suffix = ''.join(taskname.split('.')[0:-1])
+    taskname = task_no_suffix if task_no_suffix != '' else taskname
+
+    return taskname
 
 
 class CycleError(Exception):
