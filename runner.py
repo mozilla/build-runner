@@ -120,12 +120,12 @@ def get_task_name(taskfile):
     'buildbot'
     """
     task_no_prefix = ''.join(taskfile.split('-')[1:])
-    task = task_no_prefix if task_no_prefix != '' else taskfile
+    taskname = task_no_prefix if task_no_prefix != '' else taskfile
 
-    task_no_suffix = ''.join(task.split('.')[0:-1])
-    task = task_no_suffix if task_no_suffix != '' else task
+    task_no_suffix = ''.join(taskname.split('.')[0:-1])
+    taskname = task_no_suffix if task_no_suffix != '' else taskname
 
-    return task
+    return taskname
 
 
 class CycleError(Exception):
