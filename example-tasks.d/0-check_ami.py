@@ -79,11 +79,6 @@ def main():
         log.error("cannot operate without userdata")
         exit(1)
     moz_instance_type = user_data["moz_instance_type"]
-    is_spot = user_data.get("is_spot")
-    if not is_spot:
-        # TODO: shutdown doesn't work for on-demand instances
-        log.error("Non spot instances are not supported yet")
-        exit(1)
     amis = get_json(URL)
     compatible_amis = get_compatible_amis(amis, az, moz_instance_type)
     last_ami = compatible_amis[0]
