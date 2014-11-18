@@ -46,7 +46,7 @@ class Config(object):
     max_tries = 5
     max_time = 600
     halt_task = "halt.sh"
-    task_interpreter = None
+    interpreter = None
     filename = None
     options = None
 
@@ -77,8 +77,8 @@ class Config(object):
             self.max_time = self.options.getint('runner', 'max_time')
         if self.options.has_option('runner', 'halt_task'):
             self.halt_task = self.options.get('runner', 'halt_task')
-        if self.options.has_option('runner', 'task_interpreter'):
-            self.task_interpreter = self.options.get('runner', 'task_interpreter')
+        if self.options.has_option('runner', 'interpreter'):
+            self.interpreter = self.options.get('runner', 'interpreter')
 
     def get(self, section, option):
         if self.options and self.options.has_option(section, option):
@@ -289,7 +289,7 @@ def process_taskdir(config, dirname):
         "max_time": int(config.max_time),
         "max_tries": int(config.max_tries),
         "sleep_time": int(config.sleep_time),
-        "task_interpreter": config.task_interpreter,
+        "interpreter": config.interpreter,
     }
 
     for try_num in range(1, config.max_tries + 1):
@@ -305,11 +305,11 @@ def process_taskdir(config, dirname):
 
             log.debug("%s: starting (max time %is)", t, task_config['max_time'])
             task_cmd = os.path.join(dirname, t)
-            if task_config['task_interpreter'] is not None:
-                log.debug("%s: running with interpreter (%s)", t, task_config['task_interpreter'])
+            if task_config['interpreter'] is not None:
+                log.debug("%s: running with interpreter (%s)", t, task_config['interpreter'])
                 # using shlex affords the ability to pass arguments to the
                 # interpreter as well (i.e. bash -c)
-                task_cmd = shlex.split("{} '{}'".format(task_config['task_interpreter'], task_cmd))
+                task_cmd = shlex.split("{} '{}'".format(task_config['interpreter'], task_cmd))
             r = run_task(task_cmd, env, max_time=task_config['max_time'])
             log.debug("%s: %s", t, r)
 
@@ -329,10 +329,10 @@ def process_taskdir(config, dirname):
                 # stop/halt/reboot?
                 log.info("halting")
                 halt_cmd = os.path.join(dirname, config.halt_task)
-                if config.task_interpreter is not None:
+                if config.interpreter is not None:
                     # if a global task interpreter was set, it should apply
                     # here as well
-                    halt_cmd = shlex.split("{} '{}'".format(config.task_interpreter, halt_cmd))
+                    halt_cmd = shlex.split("{} '{}'".format(config.interpreter, halt_cmd))
                 run_task(halt_cmd, env, max_time=task_config['max_time'])
                 return False
         else:
