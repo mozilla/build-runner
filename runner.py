@@ -305,7 +305,7 @@ def process_taskdir(config, dirname):
 
             log.debug("%s: starting (max time %is)", t, task_config['max_time'])
             task_cmd = os.path.join(dirname, t)
-            if task_config['interpreter'] is not None:
+            if task_config['interpreter']:
                 log.debug("%s: running with interpreter (%s)", t, task_config['interpreter'])
                 # using shlex affords the ability to pass arguments to the
                 # interpreter as well (i.e. bash -c)
@@ -329,7 +329,7 @@ def process_taskdir(config, dirname):
                 # stop/halt/reboot?
                 log.info("halting")
                 halt_cmd = os.path.join(dirname, config.halt_task)
-                if config.interpreter is not None:
+                if config.interpreter:
                     # if a global task interpreter was set, it should apply
                     # here as well
                     halt_cmd = shlex.split("{} '{}'".format(config.interpreter, halt_cmd))
