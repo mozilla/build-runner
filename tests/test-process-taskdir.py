@@ -6,18 +6,17 @@ from runner import (
     process_taskdir
 )
 
-tasksd = os.path.join(os.path.split(__file__)[0], 'test-tasks.d')
-
 
 def test_tasks_default_config():
     config = Config()
+    tasksd = os.path.join(os.path.split(__file__)[0], 'test-tasks.d')
     assert process_taskdir(config, tasksd) is True
 
 
 def test_max_time():
-    t = ['sleep', '10']
+    t = ['sleep', '2']
     env = {}
-    max_time=1
+    max_time = 1
     assert run_task(t, env, max_time) == "RETRY"
 
 
