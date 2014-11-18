@@ -2,6 +2,7 @@
 """runner [-v|-q] [-c config] taskdir"""
 import os
 import time
+import shlex
 import subprocess
 import copy
 import itertools
@@ -45,6 +46,7 @@ class Config(object):
     max_tries = 5
     max_time = 600
     halt_task = "halt.sh"
+    interpreter = None
     filename = None
     options = None
 
@@ -75,6 +77,8 @@ class Config(object):
             self.max_time = self.options.getint('runner', 'max_time')
         if self.options.has_option('runner', 'halt_task'):
             self.halt_task = self.options.get('runner', 'halt_task')
+        if self.options.has_option('runner', 'interpreter'):
+            self.interpreter = self.options.get('runner', 'interpreter')
 
     def get(self, section, option):
         if self.options and self.options.has_option(section, option):
@@ -282,16 +286,17 @@ def process_taskdir(config, dirname):
     env.update(new_env)
 
     default_config = {
-        "max_time": config.max_time,
-        "max_tries": config.max_tries,
-        "sleep_time": config.sleep_time
+        "max_time": int(config.max_time),
+        "max_tries": int(config.max_tries),
+        "sleep_time": int(config.sleep_time),
+        "interpreter": config.interpreter,
     }
 
     for try_num in range(1, config.max_tries + 1):
         for t in task_list:
             # Get the portion of a task's config that can override default_config
             task_config = config.get_task_config(get_task_name(t))
-            task_config = {k: int(v) for k, v in task_config.items() if k in default_config}
+            task_config = {k: v for k, v in task_config.items() if k in default_config}
 
             # do the override
             for k, v in default_config.items():
@@ -299,7 +304,13 @@ def process_taskdir(config, dirname):
                     task_config[k] = v
 
             log.debug("%s: starting (max time %is)", t, task_config['max_time'])
-            r = run_task(os.path.join(dirname, t), env, max_time=task_config['max_time'])
+            task_cmd = os.path.join(dirname, t)
+            if task_config['interpreter']:
+                log.debug("%s: running with interpreter (%s)", t, task_config['interpreter'])
+                # using shlex affords the ability to pass arguments to the
+                # interpreter as well (i.e. bash -c)
+                task_cmd = shlex.split("{} '{}'".format(task_config['interpreter'], task_cmd))
+            r = run_task(task_cmd, env, max_time=task_config['max_time'])
             log.debug("%s: %s", t, r)
 
             if r == "OK":
@@ -317,7 +328,12 @@ def process_taskdir(config, dirname):
             elif r == "HALT":
                 # stop/halt/reboot?
                 log.info("halting")
-                run_task(os.path.join(dirname, config.halt_task), env, max_time=task_config['max_time'])
+                halt_cmd = os.path.join(dirname, config.halt_task)
+                if config.interpreter:
+                    # if a global task interpreter was set, it should apply
+                    # here as well
+                    halt_cmd = shlex.split("{} '{}'".format(config.interpreter, halt_cmd))
+                run_task(halt_cmd, env, max_time=task_config['max_time'])
                 return False
         else:
             log.debug("all tasks completed!")
