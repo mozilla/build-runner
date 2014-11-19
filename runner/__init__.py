@@ -1,4 +1,3 @@
-"""runner [-v|-q] [-c config] taskdir"""
 import os
 import time
 import shlex
@@ -193,7 +192,3 @@ def main():
         exit(1)
 
     runner(config, args.taskdir, args.times)
-
-
-if __name__ == '__main__':
-    main()
