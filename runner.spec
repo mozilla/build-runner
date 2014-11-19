@@ -15,7 +15,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Prefix: %{_prefix}
 BuildArch: noarch
 Vendor: Chris AtLee <chris@atlee.ca>
-Url: https://github.com/catlee/runner
+Url: https://github.com/mozilla/runner
 
 %description
 Run your tasks our way!

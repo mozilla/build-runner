@@ -1,10 +1,10 @@
 import os
 
 from runner import (
-    Config,
     run_task,
     process_taskdir
 )
+from runner.lib.config import Config
 
 
 def test_tasks_default_config():

@@ -1,6 +1,7 @@
 import nose
-from runner import (
-    TaskConfig,
+
+from runner.lib.config import TaskConfig
+from runner.lib.graph import (
     TaskGraph,
     DependencyDoesNotExistError,
     CycleError
