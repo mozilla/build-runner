@@ -6,6 +6,8 @@ import os
 import tempfile
 import json
 
+from nose import with_setup
+
 from runner import (
     run_task,
     process_taskdir
@@ -13,6 +15,12 @@ from runner import (
 from runner.lib.config import Config
 
 tasksd = os.path.join(os.path.split(__file__)[0], 'test-tasks.d')
+logfile = tempfile.mktemp()  # this is only a unique name, no file is created
+
+
+def teardown_logfile():
+    # should be used with any test that makes use of the logfile global
+    os.remove(logfile)
 
 
 def test_tasks_default_config():
@@ -20,13 +28,13 @@ def test_tasks_default_config():
     assert process_taskdir(config, tasksd) is True
 
 
+@with_setup(setup=None, teardown=teardown_logfile)
 def test_tasks_pre_post_hooks():
     """
     Here we use a hook which will write to a file. We can check the file
     to make sure everything ran smoothly.
     """
     pre_post_hook = os.path.join(os.path.split(__file__)[0], 'pre-post-hook.py')
-    logfile = tempfile.mktemp()
     config = Config()
 
     config.max_time = 1
@@ -36,20 +44,16 @@ def test_tasks_pre_post_hooks():
     process_taskdir(config, tasksd)
 
     with open(logfile, 'r') as log:
-        count = 0
-        for line in log:
-            count += 1
+        for count, line in enumerate(log):
             log_entry = json.loads(line)
             assert type(log_entry) == dict
             assert type(log_entry.get('task')) == unicode
             assert type(log_entry.get('try_num')) == int
             assert type(log_entry.get('max_retries')) == int
-            if count % 2 == 0:
+            if count % 2 != 0:
                 # every other log line should be from a post_hook and have a
                 # result field.
                 assert type(log_entry.get('result')) == unicode
-
-    os.remove(logfile)
 
 
 def test_max_time():
