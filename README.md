@@ -22,12 +22,13 @@ Keys:
 Task Stats:
 
 pre/post task hooks receive task stats as an argument. Task stats is a json blog of the format:
-    {
-        "task": "the task name",
-        "try_num": "the current try count",
-        "max_retries": "passed in via the config",
-        "result": "passed only to the post hook, the result of a task run."
-    }
+      
+      {
+          "task": "the task name",
+          "try_num": "the current try count",
+          "max_retries": "passed in via the config",
+          "result": "passed only to the post hook, the result of a task run."
+      }
 
 ## [env] section
 Keys and values in this section are passed into tasks as environment variables
