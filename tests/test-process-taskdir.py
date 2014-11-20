@@ -53,7 +53,8 @@ def test_tasks_pre_post_hooks():
             if count % 2 != 0:
                 # every other log line should be from a post_hook and have a
                 # result field.
-                assert type(log_entry.get('result')) == unicode
+                assert type(log_entry.get('result')) == unicode, \
+                    "post_hook received bad 'result' (%s)" % log_entry.get('result')
 
 
 def test_max_time():
