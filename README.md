@@ -14,7 +14,20 @@ Keys:
 - `max_tries`: how many times to retry before giving up
 - `halt_task`: which task to run to "halt" the process. This could perhaps shut
   the machine down or terminate the EC2 instance
+- `pre_task_hook`: a command which will run before each task, with relevant task stats passed in as a json blob.
+- `post_task_hook`: a command which will run just after each task, with relevant task stats pass in as a json blob.
 - `max_time`: maximum amount of time a task can run
+- `interpreter`: an explicit interpreter to be used for running tasks (for platforms which do not support hashbangs).
+
+Task Stats:
+
+pre/post task hooks receive task stats as an argument. Task stats is a json blog of the format:
+    {
+        "task": "the task name",
+        "try_num": "the current try count",
+        "max_retries": "passed in via the config",
+        "result": "passed only to the post hook, the result of a task run."
+    }
 
 ## [env] section
 Keys and values in this section are passed into tasks as environment variables
@@ -48,10 +61,3 @@ Run `python setup.py nosetests`, or nose manually
 
 Runner also uses doctests
 Run `python -m doctest -v runner.py`
-
-# TODO
-- implement tasks
-- exponential backoff for sleep time
-- ccache cleanup (tmp files)
-- repo cleanup (old \*.git files)
-- check slavealloc (changed master?)
