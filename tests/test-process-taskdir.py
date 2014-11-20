@@ -3,6 +3,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
+import tempfile
+import json
 
 from runner import (
     run_task,
@@ -10,11 +12,44 @@ from runner import (
 )
 from runner.lib.config import Config
 
+tasksd = os.path.join(os.path.split(__file__)[0], 'test-tasks.d')
+
 
 def test_tasks_default_config():
     config = Config()
-    tasksd = os.path.join(os.path.split(__file__)[0], 'test-tasks.d')
     assert process_taskdir(config, tasksd) is True
+
+
+def test_tasks_pre_post_hooks():
+    """
+    Here we use a hook which will write to a file. We can check the file
+    to make sure everything ran smoothly.
+    """
+    pre_post_hook = os.path.join(os.path.split(__file__)[0], 'pre-post-hook.py')
+    logfile = tempfile.mktemp()
+    config = Config()
+
+    config.max_time = 1
+    config.max_tries = 1
+    config.pre_task_hook = "python {} runner-test {}".format(pre_post_hook, logfile)
+    config.post_task_hook = "python {} runner-test {}".format(pre_post_hook, logfile)
+    process_taskdir(config, tasksd)
+
+    with open(logfile, 'r') as log:
+        count = 0
+        for line in log:
+            count += 1
+            log_entry = json.loads(line)
+            assert type(log_entry) == dict
+            assert type(log_entry.get('task')) == unicode
+            assert type(log_entry.get('try_num')) == int
+            assert type(log_entry.get('max_retries')) == int
+            if count % 2 == 0:
+                # every other log line should be from a post_hook and have a
+                # result field.
+                assert type(log_entry.get('result')) == unicode
+
+    os.remove(logfile)
 
 
 def test_max_time():
