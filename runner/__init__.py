@@ -5,6 +5,7 @@
 import os
 import time
 import shlex
+import json
 import subprocess
 
 from lib.config import Config, TaskConfig
@@ -104,7 +105,14 @@ def process_taskdir(config, dirname):
                 if k not in task_config:
                     task_config[k] = v
 
-            log.debug("%s: starting (max time %is)", t, task_config['max_time'])
+            # For consistent log info
+            task_stats = dict(task=t, try_num=try_num, max_retries=config.max_tries)
+            if config.pre_task_hook:
+                pre_task_hook_cmd = shlex.split("{} '{}'".format(config.pre_task_hook, json.dumps(task_stats)))
+                log.debug("running pre-task hook: %s", " ".join(pre_task_hook_cmd))
+                run_task(pre_task_hook_cmd, env, max_time=task_config['max_time'])
+
+            log.debug("%s: starting (max time %is)", t, config.max_time)
             task_cmd = os.path.join(dirname, t)
             if task_config['interpreter']:
                 log.debug("%s: running with interpreter (%s)", t, task_config['interpreter'])
@@ -113,6 +121,12 @@ def process_taskdir(config, dirname):
                 task_cmd = shlex.split("{} '{}'".format(task_config['interpreter'], task_cmd))
             r = run_task(task_cmd, env, max_time=task_config['max_time'])
             log.debug("%s: %s", t, r)
+
+            if config.post_task_hook:
+                task_stats['result'] = r
+                post_task_hook_cmd = shlex.split("{} '{}'".format(config.post_task_hook, json.dumps(task_stats)))
+                log.debug("running post-task hook: %s", " ".join(post_task_hook_cmd))
+                run_task(post_task_hook_cmd, env, max_time=config.max_time)
 
             if r == "OK":
                 continue
