@@ -6,7 +6,7 @@ from setuptools import setup
 
 setup(
     name="runner",
-    version="1.2",
+    version="1.3",
     description="Task runner",
     author="Chris AtLee",
     author_email="chris@atlee.ca",
