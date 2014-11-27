@@ -128,13 +128,20 @@ def process_taskdir(config, dirname):
                 log.debug("running post-task hook: %s", " ".join(post_task_hook_cmd))
                 run_task(post_task_hook_cmd, env, max_time=config.max_time)
 
+            halt_cmd = os.path.join(dirname, config.halt_task)
+            if config.interpreter:
+                # if a global task interpreter was set, it should apply
+                # here as well
+                halt_cmd = shlex.split("{} '{}'".format(config.interpreter, halt_cmd))
+
             if r == "OK":
                 continue
             elif r == "RETRY":
                 # No point in sleeping if we're on our last try
                 if try_num == task_config['max_tries']:
                     log.warn("maximum attempts reached")
-                    # TODO: halt here too?
+                    log.info("halting")
+                    run_task(halt_cmd, env, max_time=task_config['max_time'])
                     return False
                 # Sleep and try again
                 log.debug("sleeping for %i", task_config['sleep_time'])
@@ -143,11 +150,6 @@ def process_taskdir(config, dirname):
             elif r == "HALT":
                 # stop/halt/reboot?
                 log.info("halting")
-                halt_cmd = os.path.join(dirname, config.halt_task)
-                if config.interpreter:
-                    # if a global task interpreter was set, it should apply
-                    # here as well
-                    halt_cmd = shlex.split("{} '{}'".format(config.interpreter, halt_cmd))
                 run_task(halt_cmd, env, max_time=task_config['max_time'])
                 return False
         else:
