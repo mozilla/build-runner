@@ -48,6 +48,8 @@ class TaskGraph(object):
 
         to_ret = []
         graph = copy.deepcopy(self._nodes.values())
+        # our starting nodes should be sorted for users who expect init
+        # [runlevel] type behavior
         no_inc_edges = sorted(self._start_nodes(graph), key=lambda x: x.name)
         while no_inc_edges:
             n = no_inc_edges.pop()
@@ -55,7 +57,7 @@ class TaskGraph(object):
             for m in self._nodes_with_edges_from(graph, n):
                 self._remove_edge(graph, n, m)
                 if not set(self._nodes_with_edges_to(graph, m)) - set([n]):
-                    no_inc_edges.add(m)
+                    no_inc_edges.append(m)
 
         if self._has_edges(graph):
             # we've got a cycle in our graph!
