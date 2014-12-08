@@ -48,8 +48,7 @@ class TaskGraph(object):
 
         to_ret = []
         graph = copy.deepcopy(self._nodes.values())
-        no_inc_edges = self._start_nodes(graph)
-
+        no_inc_edges = sorted(self._start_nodes(graph), key=lambda x: x.name)
         while no_inc_edges:
             n = no_inc_edges.pop()
             to_ret.append(n.name)
