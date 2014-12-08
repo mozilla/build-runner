@@ -44,24 +44,6 @@ def run_task(t, env, max_time):
         return "RETRY"
 
 
-def get_task_name(taskfile):
-    """
-    >>> get_task_name('3-buildbot.py')
-    'buildbot'
-    >>> get_task_name('buildbot.py')
-    'buildbot'
-    >>> get_task_name('buildbot')
-    'buildbot'
-    """
-    task_no_prefix = ''.join(taskfile.split('-')[1:])
-    taskname = task_no_prefix if task_no_prefix != '' else taskfile
-
-    task_no_suffix = ''.join(taskname.split('.')[0:-1])
-    taskname = task_no_suffix if task_no_suffix != '' else taskname
-
-    return taskname
-
-
 def process_taskdir(config, dirname):
     tasks = list_directory(dirname)
     # Filter out the halting task
@@ -71,7 +53,7 @@ def process_taskdir(config, dirname):
     # Get a list of a TaskConfig objects mapping task to their dependencies
     taskconfigs = []
     for t in tasks:
-        deps = config.get(get_task_name(t), 'depends_on')
+        deps = config.get(t, 'depends_on')
         if deps is not None:
             taskconfigs.append(TaskConfig(t, map(str.strip, deps.split(','))))
         else:
@@ -97,7 +79,7 @@ def process_taskdir(config, dirname):
     for try_num in range(1, config.max_tries + 1):
         for t in task_list:
             # Get the portion of a task's config that can override default_config
-            task_config = config.get_task_config(get_task_name(t))
+            task_config = config.get_task_config(t)
             task_config = {k: v for k, v in task_config.items() if k in default_config}
 
             # do the override
