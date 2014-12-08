@@ -12,6 +12,13 @@ from runner.lib.graph import (
 )
 
 
+def test_graph_ok_no_deps():
+    ok = [('a', []), ('z', []), ('y', []), ('0', []), ('9', [])]
+    graph = TaskGraph(map(TaskConfig.fromtuple, ok))
+    task_order = graph.sequential_ordering()
+    assert task_order == ['0', '9', 'a', 'y', 'z']
+
+
 def test_graph_ok_single_deps():
     ok = [('apples', []), ('final', ['bees']), ('bees', ['birds']),
           ('oranges', ['apples']), ('birds', ['oranges'])]
