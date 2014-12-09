@@ -20,9 +20,11 @@ def teardown_logfile():
     # should be used with any test that makes use of the logfile global
     os.remove(logfile)
 
+
 def test_tasks_default_config():
     config = Config()
     assert runner.process_taskdir(config, tasksd) is True
+
 
 @with_setup(setup=None, teardown=teardown_logfile)
 def test_tasks_pre_post_hooks():
@@ -77,17 +79,21 @@ fake_run_task_return_values = {
 }
 fake_run_task_arguments = []  # to spy on what's being passed to run_task
 
+
 def fake_run_task(*args, **kwargs):
     fake_run_task_arguments.append((args, kwargs))
     return fake_run_task_return_values.get(args[0], 'OK')
 
+
 def replace_run_task_with_fake():
-    original_run_task = runner.run_task
+    original_run_task = runner.run_task  # noqa
     runner.run_task = fake_run_task
 
+
 def replace_run_task_with_original():
-    fake_run_task_arguments = []
+    fake_run_task_arguments = []  # noqa
     runner.run_task = original_run_task
+
 
 @with_setup(replace_run_task_with_fake, replace_run_task_with_original)
 def test_task_retries():
@@ -100,8 +106,7 @@ def test_task_retries():
     runner.process_taskdir(config, tasksd)
     # 0-say-foo.py + 2x 1-say-bar.py (retry) + halt == 4 calls to run_task
     assert len(fake_run_task_arguments) == 4
-    assert fake_run_task_arguments[0][0] == os.path.join(tasksd, '0-say-foo.py')
+    assert fake_run_task_arguments[0][0][0] == os.path.join(tasksd, '0-say-foo.py')
     for offset in (1, 2):
-        assert fake_run_task_arguments[offset][0] == os.path.join(tasksd, '1-say-bar.py')
-    last_args, last_kwargs = fake_run_task_arguments[3]
-    assert last_args[0] == os.path.join(tasksd, fake_halt_task_name)
+        assert fake_run_task_arguments[offset][0][0] == os.path.join(tasksd, '1-say-bar.py')
+    assert fake_run_task_arguments[3][0][0] == os.path.join(tasksd, fake_halt_task_name)
