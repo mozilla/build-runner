@@ -94,8 +94,11 @@ def process_taskdir(config, dirname):
         "interpreter": config.interpreter,
     }
 
+    start_task = 0
     for try_num in range(1, config.max_tries + 1):
-        for t in task_list:
+        for task_count, t in enumerate(task_list[start_task:]):
+            # Always start from the most recent task on a retry
+            start_task = start_task + task_count
             # Get the portion of a task's config that can override default_config
             task_config = config.get_task_config(get_task_name(t))
             task_config = {k: v for k, v in task_config.items() if k in default_config}
