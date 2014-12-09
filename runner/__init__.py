@@ -98,6 +98,10 @@ def process_taskdir(config, dirname):
     for try_num in range(1, config.max_tries + 1):
         for task_count, t in enumerate(task_list[start_task:]):
             # Always start from the most recent task on a retry
+            # Here we add task_count to start_task to account for the fact that
+            # enumerate will start from zero on each loop through, so, if we
+            # start from a task other than zero (after a retry) the new offset
+            # will be this plus the number of tasks run after.
             start_task = start_task + task_count
             # Get the portion of a task's config that can override default_config
             task_config = config.get_task_config(get_task_name(t))
