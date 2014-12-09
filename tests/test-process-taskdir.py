@@ -8,10 +8,8 @@ import json
 
 from nose import with_setup
 
-from runner import (
-    run_task,
-    process_taskdir
-)
+import runner
+
 from runner.lib.config import Config
 
 tasksd = os.path.join(os.path.split(__file__)[0], 'test-tasks.d')
@@ -22,11 +20,9 @@ def teardown_logfile():
     # should be used with any test that makes use of the logfile global
     os.remove(logfile)
 
-
 def test_tasks_default_config():
     config = Config()
-    assert process_taskdir(config, tasksd) is True
-
+    assert runner.process_taskdir(config, tasksd) is True
 
 @with_setup(setup=None, teardown=teardown_logfile)
 def test_tasks_pre_post_hooks():
@@ -41,7 +37,7 @@ def test_tasks_pre_post_hooks():
     config.max_tries = 1
     config.pre_task_hook = "python {} runner-test {}".format(pre_post_hook, logfile)
     config.post_task_hook = "python {} runner-test {}".format(pre_post_hook, logfile)
-    process_taskdir(config, tasksd)
+    runner.process_taskdir(config, tasksd)
 
     with open(logfile, 'r') as log:
         for count, line in enumerate(log):
@@ -61,7 +57,7 @@ def test_max_time():
     t = ['sleep', '2']
     env = {}
     max_time = 1
-    assert run_task(t, env, max_time) == "RETRY"
+    assert runner.run_task(t, env, max_time) == "RETRY"
 
 
 def test_task_exit_codes():
@@ -71,6 +67,41 @@ def test_task_exit_codes():
     halt_t = bash_cmd + ['exit 2']
     retry_t = bash_cmd + ['exit 1']
 
-    assert run_task(success_t, env, 1) == "OK"
-    assert run_task(halt_t, env, 1) == "HALT"
-    assert run_task(retry_t, env, 1) == "RETRY"
+    assert runner.run_task(success_t, env, 1) == "OK"
+    assert runner.run_task(halt_t, env, 1) == "HALT"
+    assert runner.run_task(retry_t, env, 1) == "RETRY"
+
+original_run_task = None
+fake_run_task_return_values = {
+    os.path.join(tasksd, '1-say-bar.py'): 'RETRY',
+}
+fake_run_task_arguments = []  # to spy on what's being passed to run_task
+
+def fake_run_task(*args, **kwargs):
+    fake_run_task_arguments.append((args, kwargs))
+    return fake_run_task_return_values.get(args[0], 'OK')
+
+def replace_run_task_with_fake():
+    original_run_task = runner.run_task
+    runner.run_task = fake_run_task
+
+def replace_run_task_with_original():
+    fake_run_task_arguments = []
+    runner.run_task = original_run_task
+
+@with_setup(replace_run_task_with_fake, replace_run_task_with_original)
+def test_task_retries():
+    config = Config()
+    config.max_time = 1
+    config.max_tries = 2
+    fake_halt_task_name = 'mrrrgns_lil_halt_task'
+    config.halt_task = fake_halt_task_name
+
+    runner.process_taskdir(config, tasksd)
+    # 0-say-foo.py + 2x 1-say-bar.py (retry) + halt == 4 calls to run_task
+    assert len(fake_run_task_arguments) == 4
+    assert fake_run_task_arguments[0][0] == os.path.join(tasksd, '0-say-foo.py')
+    for offset in (1, 2):
+        assert fake_run_task_arguments[offset][0] == os.path.join(tasksd, '1-say-bar.py')
+    last_args, last_kwargs = fake_run_task_arguments[3]
+    assert last_args[0] == os.path.join(tasksd, fake_halt_task_name)
