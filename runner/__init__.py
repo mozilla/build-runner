@@ -175,6 +175,8 @@ def make_argument_parser():
     parser.add_argument("-c", "--config", dest="config_file")
     parser.add_argument("-g", "--get", dest="get", help="get configuration value")
     parser.add_argument("-n", "--times", dest="times", type=int, help="run this many times (default is forever)")
+    parser.add_argument("-H", "--halt-after", dest="halt_after", action="store_const", const=True,
+                        help="Call the halt task after runner finishes (never called if -n is not set).")
     parser.add_argument("taskdir", help="task directory", nargs="?")
 
     return parser
@@ -219,3 +221,7 @@ def main():
         exit(1)
 
     runner(config, args.taskdir, args.times)
+    if args.halt_after and config.halt_task:
+        halt_cmd = os.path.join(args.taskdir, config.halt_task)
+        print("finishing run with halt task: %s" % halt_cmd)
+        run_task(halt_cmd, os.environ, config.max_time)
