@@ -94,10 +94,9 @@ def process_taskdir(config, dirname):
         "interpreter": config.interpreter,
     }
 
-    start_task = 0
+    start_task = 0  # For starting from the most recent task on a retry.
     for try_num in range(1, config.max_tries + 1):
         for task_count, t in enumerate(task_list[start_task:]):
-            # Always start from the most recent task on a retry
             # Here we add task_count to start_task to account for the fact that
             # enumerate will start from zero on each loop through, so, if we
             # start from a task other than zero (after a retry) the new offset
