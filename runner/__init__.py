@@ -112,11 +112,11 @@ def process_taskdir(config, dirname):
                     task_config[k] = v
 
             # For consistent log info
-            task_stats = dict(task=t, try_num=try_num, max_retries=config.max_tries)
-            if config.pre_task_hook:
-                pre_task_hook_cmd = shlex.split("{} '{}'".format(config.pre_task_hook, json.dumps(task_stats)))
-                log.debug("running pre-task hook: %s", " ".join(pre_task_hook_cmd))
-                run_task(pre_task_hook_cmd, env, max_time=task_config['max_time'])
+            task_stats = dict(task=t, try_num=try_num, max_retries=config.max_tries, result="RUNNING")
+            if config.task_hook:
+                task_hook_cmd = shlex.split("{} '{}'".format(config.task_hook, json.dumps(task_stats)))
+                log.debug("running pre-task hook: %s", " ".join(task_hook_cmd))
+                run_task(task_hook_cmd, env, max_time=task_config['max_time'])
 
             log.debug("%s: starting (max time %is)", t, config.max_time)
             task_cmd = os.path.join(dirname, t)
@@ -128,11 +128,11 @@ def process_taskdir(config, dirname):
             r = run_task(task_cmd, env, max_time=task_config['max_time'])
             log.debug("%s: %s", t, r)
 
-            if config.post_task_hook:
+            if config.task_hook:
                 task_stats['result'] = r
-                post_task_hook_cmd = shlex.split("{} '{}'".format(config.post_task_hook, json.dumps(task_stats)))
-                log.debug("running post-task hook: %s", " ".join(post_task_hook_cmd))
-                run_task(post_task_hook_cmd, env, max_time=config.max_time)
+                task_hook_cmd = shlex.split("{} '{}'".format(config.task_hook, json.dumps(task_stats)))
+                log.debug("running post-task hook: %s", " ".join(task_hook_cmd))
+                run_task(task_hook_cmd, env, max_time=config.max_time)
 
             halt_cmd = os.path.join(dirname, config.halt_task)
             if config.interpreter:
