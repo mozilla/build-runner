@@ -14,15 +14,14 @@ Keys:
 - `max_tries`: how many times to retry before giving up
 - `halt_task`: which task to run to "halt" the process. This could perhaps shut
   the machine down or terminate the EC2 instance
-- `pre_task_hook`: a command which will run before each task, with relevant task stats passed in as a json blob.
-- `post_task_hook`: a command which will run just after each task, with relevant task stats pass in as a json blob.
+- `task_hook`: a command which will run before and after each task, with relevant task stats passed in as a json blob.
 - `max_time`: maximum amount of time a task can run
 - `interpreter`: an explicit interpreter to be used for running tasks (for platforms which do not support hashbangs).
 
 Task Stats:
 
 pre/post task hooks receive task stats as an argument. Task stats is a json blog of the format:
-      
+
       {
           "task": "the task name",
           "try_num": "the current try count",

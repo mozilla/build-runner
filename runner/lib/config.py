@@ -17,8 +17,7 @@ class Config(object):
     max_tries = 5
     max_time = 600
     halt_task = "halt.sh"
-    pre_task_hook = None
-    post_task_hook = None
+    task_hook = None
     interpreter = None
     filename = None
     options = None
@@ -50,10 +49,8 @@ class Config(object):
             self.max_time = self.options.getint('runner', 'max_time')
         if self.options.has_option('runner', 'halt_task'):
             self.halt_task = self.options.get('runner', 'halt_task')
-        if self.options.has_option('runner', 'pre_task_hook'):
-            self.pre_task_hook = self.options.get('runner', 'pre_task_hook')
-        if self.options.has_option('runner', 'post_task_hook'):
-            self.post_task_hook = self.options.get('runner', 'post_task_hook')
+        if self.options.has_option('runner', 'task_hook'):
+            self.task_hook = self.options.get('runner', 'task_hook')
         if self.options.has_option('runner', 'interpreter'):
             self.interpreter = self.options.get('runner', 'interpreter')
 

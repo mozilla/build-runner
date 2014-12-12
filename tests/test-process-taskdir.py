@@ -37,8 +37,7 @@ def test_tasks_pre_post_hooks():
 
     config.max_time = 1
     config.max_tries = 1
-    config.pre_task_hook = "python {} runner-test {}".format(pre_post_hook, logfile)
-    config.post_task_hook = "python {} runner-test {}".format(pre_post_hook, logfile)
+    config.task_hook = "python {} runner-test {}".format(pre_post_hook, logfile)
     runner.process_taskdir(config, tasksd)
 
     with open(logfile, 'r') as log:
@@ -48,11 +47,7 @@ def test_tasks_pre_post_hooks():
             assert type(log_entry.get('task')) == unicode
             assert type(log_entry.get('try_num')) == int
             assert type(log_entry.get('max_retries')) == int
-            if count % 2 != 0:
-                # every other log line should be from a post_hook and have a
-                # result field.
-                assert type(log_entry.get('result')) == unicode, \
-                    "post_hook received bad 'result' (%s)" % log_entry.get('result')
+            assert type(log_entry.get('result')) == unicode
 
 
 def test_max_time():
