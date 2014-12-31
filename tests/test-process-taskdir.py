@@ -61,12 +61,15 @@ def test_task_exit_codes():
     env = {}
     bash_cmd = ['/usr/bin/env', 'bash', '-c']
     success_t = bash_cmd + ['exit 0']
+    exit_t = bash_cmd + ['exit 3']
     halt_t = bash_cmd + ['exit 2']
     retry_t = bash_cmd + ['exit 1']
 
     assert runner.run_task(success_t, env, 1) == "OK"
+    assert runner.run_task(exit_t, env, 1) == "EXIT"
     assert runner.run_task(halt_t, env, 1) == "HALT"
     assert runner.run_task(retry_t, env, 1) == "RETRY"
+
 
 original_run_task = None
 fake_run_task_return_values = {
@@ -76,17 +79,19 @@ fake_run_task_arguments = []  # to spy on what's being passed to run_task
 
 
 def fake_run_task(*args, **kwargs):
+    global fake_run_task_arguments
     fake_run_task_arguments.append((args, kwargs))
     return fake_run_task_return_values.get(args[0], 'OK')
 
 
 def replace_run_task_with_fake():
+    global fake_run_task_arguments
+    fake_run_task_arguments = []
     original_run_task = runner.run_task  # noqa
     runner.run_task = fake_run_task
 
 
 def replace_run_task_with_original():
-    fake_run_task_arguments = []  # noqa
     runner.run_task = original_run_task
 
 
@@ -98,10 +103,30 @@ def test_task_retries():
     fake_halt_task_name = 'mrrrgns_lil_halt_task'
     config.halt_task = fake_halt_task_name
 
-    runner.process_taskdir(config, tasksd)
+    return_value = runner.process_taskdir(config, tasksd)
+    assert return_value is False
     # 0-say-foo.py + 2x 1-say-bar.py (retry) + halt == 4 calls to run_task
     assert len(fake_run_task_arguments) == 4
     assert fake_run_task_arguments[0][0][0] == os.path.join(tasksd, '0-say-foo.py')
     for offset in (1, 2):
         assert fake_run_task_arguments[offset][0][0] == os.path.join(tasksd, '1-say-bar.py')
     assert fake_run_task_arguments[3][0][0] == os.path.join(tasksd, fake_halt_task_name)
+
+
+@with_setup(replace_run_task_with_fake, replace_run_task_with_original)
+def test_task_exit():
+    global fake_run_task_return_values
+    fake_run_task_return_values = {
+        os.path.join(tasksd, '0-say-foo.py'): 'EXIT',
+    }
+
+    config = Config()
+    config.max_time = 1
+    fake_halt_task_name = 'mrrrgns_lil_halt_task'
+    config.halt_task = fake_halt_task_name
+
+    return_value = runner.process_taskdir(config, tasksd)
+    assert return_value is False
+    # 0-say-foo.py == 1 calls to run_task
+    assert len(fake_run_task_arguments) == 1
+    assert fake_run_task_arguments[0][0][0] == os.path.join(tasksd, '0-say-foo.py')
