@@ -61,10 +61,12 @@ def test_task_exit_codes():
     env = {}
     bash_cmd = ['/usr/bin/env', 'bash', '-c']
     success_t = bash_cmd + ['exit 0']
+    exit_t = bash_cmd + ['exit 3']
     halt_t = bash_cmd + ['exit 2']
     retry_t = bash_cmd + ['exit 1']
 
     assert runner.run_task(success_t, env, 1) == "OK"
+    assert runner.run_task(exit_t, env, 1) == "EXIT"
     assert runner.run_task(halt_t, env, 1) == "HALT"
     assert runner.run_task(retry_t, env, 1) == "RETRY"
 

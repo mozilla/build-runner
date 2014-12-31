@@ -40,6 +40,8 @@ def run_task(t, env, max_time):
         return "OK"
     elif rv == 2:
         return "HALT"
+    elif rv == 3:
+        return "EXIT"
     else:
         return "RETRY"
 
@@ -154,9 +156,11 @@ def process_taskdir(config, dirname):
                 time.sleep(task_config['sleep_time'])
                 break
             elif r == "HALT":
-                # stop/halt/reboot?
                 log.info("halting")
                 run_task(halt_cmd, env, max_time=task_config['max_time'])
+                return False
+            elif r == "EXIT":
+                log.info("exiting")
                 return False
         else:
             log.debug("all tasks completed!")
