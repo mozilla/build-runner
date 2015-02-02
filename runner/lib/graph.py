@@ -69,8 +69,7 @@ class TaskGraph(object):
     @classmethod
     def _start_nodes(cls, graph):
         """Returns the nodes in the graph with no dependencies"""
-        return {n for n in graph
-                if not cls._nodes_with_edges_to(graph, n)}
+        return set(n for n in graph if not cls._nodes_with_edges_to(graph, n))
 
     @staticmethod
     def _has_edges(graph):
@@ -89,7 +88,7 @@ class TaskGraph(object):
         More generally this means it returns the list of nodes which have
         directed edges pointed to n.
         """
-        return {m for m in graph if m is not n and n in m.dependencies}
+        return set(m for m in graph if m is not n and n in m.dependencies)
 
     @staticmethod
     def _nodes_with_edges_from(graph, n):
