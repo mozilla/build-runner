@@ -106,7 +106,12 @@ def process_taskdir(config, dirname):
             start_task = start_task + task_count
             # Get the portion of a task's config that can override default_config
             task_config = config.get_task_config(get_task_name(t))
-            task_config = {k: v for k, v in task_config.items() if k in default_config}
+            task_config_dict = {}
+            # do it the long way for < 2.7.5 compatibility
+            for k, v in task_config.items():
+                if k in default_config:
+                    task_config_dict[k] = v
+            task_config = task_config_dict
 
             # do the override
             for k, v in default_config.items():
