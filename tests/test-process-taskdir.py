@@ -18,8 +18,8 @@ logfile = tempfile.mktemp()  # this is only a unique name, no file is created
 
 def teardown_logfile():
     # should be used with any test that makes use of the logfile global
-    os.remove(logfile)
-
+    #os.remove(logfile)
+    pass
 
 def test_tasks_default_config():
     config = Config()
@@ -37,7 +37,7 @@ def test_tasks_pre_post_hooks():
 
     config.max_time = 1
     config.max_tries = 1
-    config.task_hook = "python {} runner-test {}".format(pre_post_hook, logfile)
+    config.task_hook = "python %s runner-test %s" % (pre_post_hook, logfile)
     runner.process_taskdir(config, tasksd)
 
     with open(logfile, 'r') as log:

@@ -121,7 +121,7 @@ def process_taskdir(config, dirname):
             # For consistent log info
             task_stats = dict(task=t, try_num=try_num, max_retries=config.max_tries, result="RUNNING")
             if config.task_hook:
-                task_hook_cmd = shlex.split("{} '{}'".format(config.task_hook, json.dumps(task_stats)))
+                task_hook_cmd = shlex.split("%s '%s'" % (config.task_hook, json.dumps(task_stats)))
                 log.debug("running pre-task hook: %s", " ".join(task_hook_cmd))
                 run_task(task_hook_cmd, env, max_time=task_config['max_time'])
 
@@ -131,13 +131,13 @@ def process_taskdir(config, dirname):
                 log.debug("%s: running with interpreter (%s)", t, task_config['interpreter'])
                 # using shlex affords the ability to pass arguments to the
                 # interpreter as well (i.e. bash -c)
-                task_cmd = shlex.split("{} '{}'".format(task_config['interpreter'], task_cmd))
+                task_cmd = shlex.split("%s '%s'" % (task_config['interpreter'], task_cmd))
             r = run_task(task_cmd, env, max_time=task_config['max_time'])
             log.debug("%s: %s", t, r)
 
             if config.task_hook:
                 task_stats['result'] = r
-                task_hook_cmd = shlex.split("{} '{}'".format(config.task_hook, json.dumps(task_stats)))
+                task_hook_cmd = shlex.split("%s '%s'" % (config.task_hook, json.dumps(task_stats)))
                 log.debug("running post-task hook: %s", " ".join(task_hook_cmd))
                 run_task(task_hook_cmd, env, max_time=config.max_time)
 
@@ -145,7 +145,7 @@ def process_taskdir(config, dirname):
             if config.interpreter:
                 # if a global task interpreter was set, it should apply
                 # here as well
-                halt_cmd = shlex.split("{} '{}'".format(config.interpreter, halt_cmd))
+                halt_cmd = shlex.split("%s '%s'" % (config.interpreter, halt_cmd))
 
             if r == "OK":
                 continue
