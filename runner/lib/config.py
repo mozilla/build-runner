@@ -14,6 +14,7 @@ log = logging.getLogger(__name__)
 
 class Config(object):
     sleep_time = 1
+    retry_jitter = 30
     max_tries = 5
     max_time = 600
     halt_task = "halt.sh"

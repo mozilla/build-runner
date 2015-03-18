@@ -21,6 +21,7 @@ def teardown_logfile():
     #os.remove(logfile)
     pass
 
+
 def test_tasks_default_config():
     config = Config()
     assert runner.process_taskdir(config, tasksd) is True
@@ -37,6 +38,7 @@ def test_tasks_pre_post_hooks():
 
     config.max_time = 1
     config.max_tries = 1
+    config.retry_jitter = 0
     config.task_hook = "python %s runner-test %s" % (pre_post_hook, logfile)
     runner.process_taskdir(config, tasksd)
 
@@ -100,6 +102,7 @@ def test_task_retries():
     config = Config()
     config.max_time = 1
     config.max_tries = 2
+    config.retry_jitter = 0
     fake_halt_task_name = 'mrrrgns_lil_halt_task'
     config.halt_task = fake_halt_task_name
 
