@@ -18,6 +18,6 @@ setup(
         "console_scripts": ["runner = runner:main"],
     },
     url="https://github.com/mozilla/runner",
-    install_requires=["argparse>=1.0"],
+    install_requires=["argparse"],
     setup_requires=["nose==1.3.1"],
 )
