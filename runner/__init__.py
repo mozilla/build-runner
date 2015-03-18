@@ -6,6 +6,7 @@ import os
 import time
 import shlex
 import json
+import random
 import subprocess
 
 from lib.config import Config, TaskConfig
@@ -93,6 +94,7 @@ def process_taskdir(config, dirname):
         "max_time": int(config.max_time),
         "max_tries": int(config.max_tries),
         "sleep_time": int(config.sleep_time),
+        "retry_jitter": int(config.retry_jitter),
         "interpreter": config.interpreter,
     }
 
@@ -156,9 +158,13 @@ def process_taskdir(config, dirname):
                     log.info("halting")
                     run_task(halt_cmd, env, max_time=task_config['max_time'])
                     return False
-                # Sleep and try again
-                log.debug("sleeping for %i", task_config['sleep_time'])
-                time.sleep(task_config['sleep_time'])
+                # Sleep and try again, sleep time is the lower bound within a
+                # random jitter
+                sleep_time = int((1.14**try_num) * random.randint(
+                    task_config['sleep_time'],
+                    task_config['sleep_time'] + task_config['retry_jitter']))
+                log.debug("sleeping for %i", sleep_time)
+                time.sleep(sleep_time)
                 break
             elif r == "HALT":
                 log.info("halting")

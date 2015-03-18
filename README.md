@@ -10,7 +10,8 @@ Configuration is done with INI style configuration files.
 ## [runner] section
 Keys:
 
-- `sleep_time`: how long to wait between retries
+- `sleep_time`: minimum time to wait between retries
+- `retry_jitter`: a random interval, added to sleep_times
 - `max_tries`: how many times to retry before giving up
 - `halt_task`: which task to run to "halt" the process. This could perhaps shut
   the machine down or terminate the EC2 instance
