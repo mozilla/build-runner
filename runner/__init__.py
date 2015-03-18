@@ -159,7 +159,8 @@ def process_taskdir(config, dirname):
                     run_task(halt_cmd, env, max_time=task_config['max_time'])
                     return False
                 # Sleep and try again, sleep time is the lower bound within a
-                # random jitter
+                # random jitter. Note: the 1.14 was chosen at random
+                # and has no special meaning.
                 sleep_time = int((1.14**try_num) * random.randint(
                     task_config['sleep_time'],
                     task_config['sleep_time'] + task_config['retry_jitter']))
