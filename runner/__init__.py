@@ -181,7 +181,7 @@ def process_taskdir(config, dirname):
 
 
 def get_syslog_address():
-    # the local syslog address depends on our platform and must be set manually
+    # the local syslog socket file depends on our platform and must be set manually
     # in the log handler
     if sys.platform == "linux2":
         return "/dev/log"
@@ -196,6 +196,8 @@ def make_argument_parser():
     parser.set_defaults(
         loglevel=logging.INFO,
     )
+    if sys.platform in ('linux2', 'darwin'):
+        parser.add_argument("--syslog", dest="syslog", action="store_const", const=True, help="send messages to syslog")
     parser.add_argument("-q", "--quiet", dest="loglevel", action="store_const", const=logging.WARN, help="quiet")
     parser.add_argument("-v", "--verbose", dest="loglevel", action="store_const", const=logging.DEBUG, help="verbose")
     parser.add_argument("-c", "--config", dest="config_file")
@@ -203,9 +205,6 @@ def make_argument_parser():
     parser.add_argument("-n", "--times", dest="times", type=int, help="run this many times (default is forever)")
     parser.add_argument("-H", "--halt-after", dest="halt_after", action="store_const", const=True,
                         help="Call the halt task after runner finishes (never called if -n is not set).")
-    parser.add_argument("--syslog", dest="syslog", action="store_const", const=True, help="send messages to syslog")
-    parser.add_argument("--syslog-address", dest="syslog_address", default=get_syslog_address(),
-                        help="set a custom syslog address (defaults to system local)")
     parser.add_argument("taskdir", help="task directory", nargs="?")
 
     return parser
@@ -229,13 +228,12 @@ def runner(config, taskdir, times):
 def main():
     parser = make_argument_parser()
     args = parser.parse_args()
-
     logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=args.loglevel)
     config = Config()
 
     if args.syslog:
         from logging.handlers import SysLogHandler
-        handler = SysLogHandler(address=args.syslog_address)
+        handler = SysLogHandler(address=get_syslog_address())
         log.addHandler(handler)
 
     if args.config_file:
