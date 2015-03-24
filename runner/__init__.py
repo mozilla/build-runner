@@ -201,9 +201,9 @@ def make_argument_parser():
     parser.add_argument("-q", "--quiet", dest="loglevel", action="store_const", const=logging.WARN, help="quiet")
     parser.add_argument("-v", "--verbose", dest="loglevel", action="store_const", const=logging.DEBUG, help="verbose")
     parser.add_argument("-c", "--config", dest="config_file")
-    parser.add_argument("-g", "--get", dest="get", help="get configuration value")
-    parser.add_argument("-n", "--times", dest="times", type=int, help="run this many times (default is forever)")
-    parser.add_argument("-H", "--halt-after", dest="halt_after", action="store_const", const=True,
+    parser.add_argument("-g", "--get", help="get configuration value")
+    parser.add_argument("-n", "--times", type=int, help="run this many times (default is forever)")
+    parser.add_argument("-H", "--halt-after", action="store_const", const=True,
                         help="Call the halt task after runner finishes (never called if -n is not set).")
     parser.add_argument("taskdir", help="task directory", nargs="?")
 
