@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
+import sys
 import time
 import shlex
 import json
@@ -179,6 +180,16 @@ def process_taskdir(config, dirname):
             return True
 
 
+def get_syslog_address():
+    # local syslog address depends on platform, and must be set manually in the
+    # log handler
+    if sys.platform == "linux2":
+        return "/dev/log"
+    elif sys.platform == "darwin":
+        return "/var/run/syslog"
+    return
+
+
 def make_argument_parser():
     import argparse
     parser = argparse.ArgumentParser(__doc__)
@@ -192,6 +203,9 @@ def make_argument_parser():
     parser.add_argument("-n", "--times", dest="times", type=int, help="run this many times (default is forever)")
     parser.add_argument("-H", "--halt-after", dest="halt_after", action="store_const", const=True,
                         help="Call the halt task after runner finishes (never called if -n is not set).")
+    parser.add_argument("--syslog", dest="syslog", action="store_const", const=True, help="send messages to syslog")
+    parser.add_argument("--syslog-address", dest="syslog_address", default=get_syslog_address(),
+                        help="set a custom syslog address (defaults to system local)")
     parser.add_argument("taskdir", help="task directory", nargs="?")
 
     return parser
@@ -215,9 +229,15 @@ def runner(config, taskdir, times):
 def main():
     parser = make_argument_parser()
     args = parser.parse_args()
-    logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=args.loglevel)
 
+    logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=args.loglevel)
     config = Config()
+
+    if args.syslog:
+        from logging.handlers import SysLogHandler
+        handler = SysLogHandler(address=args.syslog_address)
+        log.addHandler(handler)
+
     if args.config_file:
         config.load_config(args.config_file)
 
@@ -238,5 +258,5 @@ def main():
     runner(config, args.taskdir, args.times)
     if args.halt_after and config.halt_task:
         halt_cmd = os.path.join(args.taskdir, config.halt_task)
-        print("finishing run with halt task: %s" % halt_cmd)
+        log.info("finishing run with halt task: %s" % halt_cmd)
         run_task(halt_cmd, os.environ, config.max_time)
