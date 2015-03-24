@@ -181,8 +181,8 @@ def process_taskdir(config, dirname):
 
 
 def get_syslog_address():
-    # local syslog address depends on platform, and must be set manually in the
-    # log handler
+    # the local syslog address depends on our platform and must be set manually
+    # in the log handler
     if sys.platform == "linux2":
         return "/dev/log"
     elif sys.platform == "darwin":
