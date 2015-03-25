@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
+import sys
 import time
 import shlex
 import json
@@ -179,18 +180,30 @@ def process_taskdir(config, dirname):
             return True
 
 
+def get_syslog_address():
+    # the local syslog socket file depends on our platform and must be set manually
+    # in the log handler
+    if sys.platform == "linux2":
+        return "/dev/log"
+    elif sys.platform == "darwin":
+        return "/var/run/syslog"
+    return
+
+
 def make_argument_parser():
     import argparse
     parser = argparse.ArgumentParser(__doc__)
     parser.set_defaults(
         loglevel=logging.INFO,
     )
+    if sys.platform in ('linux2', 'darwin'):
+        parser.add_argument("--syslog", dest="syslog", action="store_const", const=True, help="send messages to syslog")
     parser.add_argument("-q", "--quiet", dest="loglevel", action="store_const", const=logging.WARN, help="quiet")
     parser.add_argument("-v", "--verbose", dest="loglevel", action="store_const", const=logging.DEBUG, help="verbose")
     parser.add_argument("-c", "--config", dest="config_file")
-    parser.add_argument("-g", "--get", dest="get", help="get configuration value")
-    parser.add_argument("-n", "--times", dest="times", type=int, help="run this many times (default is forever)")
-    parser.add_argument("-H", "--halt-after", dest="halt_after", action="store_const", const=True,
+    parser.add_argument("-g", "--get", help="get configuration value")
+    parser.add_argument("-n", "--times", type=int, help="run this many times (default is forever)")
+    parser.add_argument("-H", "--halt-after", action="store_const", const=True,
                         help="Call the halt task after runner finishes (never called if -n is not set).")
     parser.add_argument("taskdir", help="task directory", nargs="?")
 
@@ -216,8 +229,13 @@ def main():
     parser = make_argument_parser()
     args = parser.parse_args()
     logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=args.loglevel)
-
     config = Config()
+
+    if sys.platform in ('linux2', 'darwin') and args.syslog:
+        from logging.handlers import SysLogHandler
+        handler = SysLogHandler(address=get_syslog_address())
+        log.addHandler(handler)
+
     if args.config_file:
         config.load_config(args.config_file)
 
@@ -238,5 +256,5 @@ def main():
     runner(config, args.taskdir, args.times)
     if args.halt_after and config.halt_task:
         halt_cmd = os.path.join(args.taskdir, config.halt_task)
-        print("finishing run with halt task: %s" % halt_cmd)
+        log.info("finishing run with halt task: %s" % halt_cmd)
         run_task(halt_cmd, os.environ, config.max_time)
