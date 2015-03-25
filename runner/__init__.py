@@ -231,7 +231,7 @@ def main():
     logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=args.loglevel)
     config = Config()
 
-    if args.syslog:
+    if sys.platform in ('linux2', 'darwin') and args.syslog:
         from logging.handlers import SysLogHandler
         handler = SysLogHandler(address=get_syslog_address())
         log.addHandler(handler)
