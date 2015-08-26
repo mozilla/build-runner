@@ -22,36 +22,6 @@ def teardown_logfile():
     pass
 
 
-def test_tasks_default_config():
-    config = Config()
-    assert runner.process_taskdir(config, tasksd) is True
-
-
-@with_setup(setup=None, teardown=teardown_logfile)
-def test_tasks_pre_post_hooks():
-    """
-    Here we use a hook which will write to a file. We can check the file
-    to make sure everything ran smoothly.
-    """
-    pre_post_hook = os.path.join(os.path.split(__file__)[0], 'pre-post-hook.py')
-    config = Config()
-
-    config.max_time = 1
-    config.max_tries = 1
-    config.retry_jitter = 0
-    config.task_hook = "python %s runner-test %s" % (pre_post_hook, logfile)
-    runner.process_taskdir(config, tasksd)
-
-    with open(logfile, 'r') as log:
-        for count, line in enumerate(log):
-            log_entry = json.loads(line)
-            assert type(log_entry) == dict
-            assert type(log_entry.get('task')) == unicode
-            assert type(log_entry.get('try_num')) == int
-            assert type(log_entry.get('max_retries')) == int
-            assert type(log_entry.get('result')) == unicode
-
-
 def test_max_time():
     t = ['sleep', '2']
     env = {}
