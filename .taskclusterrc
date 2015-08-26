@@ -1,0 +1,10 @@
+---
+version: 1
+tasks:
+  - payload:
+      image: "quay.io/mrrrgn/ubuntu-ci:0.0.1"
+      command:
+        - "/bin/bash"
+        - "--login"
+        - "-c"
+        - "checkout-pull-request && pip install nose && nosetests"

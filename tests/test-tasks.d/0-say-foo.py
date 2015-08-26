@@ -5,3 +5,5 @@
 
 
 print("foo")
+import sys
+sys.exit(1)
