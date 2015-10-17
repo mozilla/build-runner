@@ -1,0 +1,28 @@
+version: 0
+metadata:
+  name: "Runner Tests"
+  description: "Tests for Releng's Runner"
+  owner: "{{ event.head.user.email }}"
+  source: "{{ event.head.repo.url }}"
+tasks:
+  - provisionerId: "{{ taskcluster.docker.provisionerId }}"
+    workerType: "{{ taskcluster.docker.workerType }}"
+    extra:
+      github:
+        env: true
+        events:
+          - pull_request.opened
+          - pull_request.synchronize
+          - pull_request.reopened
+    payload:
+      maxRunTime: 3600
+      image: "quay.io/mrrrgn/ubuntu-ci:0.0.1"
+      command:
+        - "/bin/bash"
+        - "-lc"
+        - "checkout-pull-request && pip install nose && nosetests"
+    metadata:
+      name: "Runner Tests"
+      description: "All non-integration tests"
+      owner: "{{ event.head.user.email }}"
+      source: "{{ event.head.repo.url }}"
